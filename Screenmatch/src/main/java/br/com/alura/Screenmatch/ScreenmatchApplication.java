@@ -3,20 +3,26 @@ package br.com.alura.Screenmatch;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import br.com.alura.Screenmatch.Principal.principal;
 
-@SpringBootApplication // Classe principal da aplicação Spring Boot
+import br.com.alura.Screenmatch.Principal.principal;
+import br.com.alura.Screenmatch.Repository.SerieRepository;
+
+@SpringBootApplication
 public class ScreenmatchApplication implements CommandLineRunner {
 
-	public static void main(String[] args) {
-		SpringApplication.run(ScreenmatchApplication.class, args);
-	}
+    private final SerieRepository repository;
 
-	@Override // Método que será executado quando a aplicação for iniciada
-	public void run(String... args) throws Exception {
+    public ScreenmatchApplication(SerieRepository repository) {
+        this.repository = repository;
+    }
 
-		principal principal = new principal();
-		principal.exibeMenu();
+    public static void main(String[] args) {
+        SpringApplication.run(ScreenmatchApplication.class, args);
+    }
 
-	}
+    @Override
+    public void run(String... args) throws Exception {
+        principal principal = new principal(repository);
+        principal.exibeMenu();
+    }
 }

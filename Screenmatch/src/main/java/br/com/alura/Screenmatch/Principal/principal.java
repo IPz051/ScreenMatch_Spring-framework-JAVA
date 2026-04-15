@@ -10,6 +10,7 @@ import java.util.Scanner;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import br.com.alura.Screenmatch.Repository.SerieRepository;
 import br.com.alura.Screenmatch.model.DadosEpisodio;
 import br.com.alura.Screenmatch.model.DadosTemporada;
 import br.com.alura.Screenmatch.model.DadosSerie;
@@ -21,9 +22,13 @@ public class principal {
 
     Scanner leitor = new Scanner(System.in);
     private ConsumoApi consumo = new ConsumoApi();
-
+    private final SerieRepository repository;
     private ConverteDados converteDados = new ConverteDados();
     private List<Serie> seriesBuscadas = new ArrayList<>();
+
+    public principal(SerieRepository repository) {
+        this.repository = repository;
+    }
 
     // Constantes que não vão sofrer alterações (final) ,
     private final String ENDERECO = "https://www.omdbapi.com/?t=";
@@ -104,6 +109,9 @@ public class principal {
         System.out.println(fichaSerie);
     }
 
+
+
+
     // Método para exibir o menu principal
     public void exibeMenu() {
         while (true) {
@@ -152,8 +160,9 @@ public class principal {
             System.out.println("Série não encontrada.");
             return;
         }
-
-        seriesBuscadas.add(new Serie(dadosSerie));
+        Serie serie = new Serie(dadosSerie);
+        repository.save(serie);
+        seriesBuscadas.add(serie);
         exibirDadosSerie(dadosSerie);
 
         Integer totalTemporadas = dadosSerie.temporada();
@@ -272,6 +281,8 @@ public class principal {
     private void listarSeriesBuscadas() {
         System.out.println();
         System.out.println("=== SÉRIES BUSCADAS ===");
+
+        seriesBuscadas = repository.findAll();
 
         if (seriesBuscadas.isEmpty()) {
             System.out.println("Nenhuma série foi buscada ainda.");
