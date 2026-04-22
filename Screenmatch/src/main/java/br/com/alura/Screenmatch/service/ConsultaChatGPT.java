@@ -3,6 +3,7 @@ package br.com.alura.Screenmatch.service;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.errors.RateLimitException;
+import com.openai.errors.UnauthorizedException;
 import com.openai.models.ChatModel;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 
@@ -26,13 +27,18 @@ public class ConsultaChatGPT {
             return texto;
         }
 
+        OpenAIClient cliente = getClient();
+        if (cliente == null) {
+            return texto;
+        }
+
         ChatCompletionCreateParams requisicao = ChatCompletionCreateParams.builder()
                 .model(ChatModel.GPT_4O_MINI)
                 .addUserMessage("Traduza para o portugues o texto abaixo, sem explicar e sem adicionar aspas:\n" + texto)
                 .build();
 
         try {
-            return getClient().chat()
+            return cliente.chat()
                     .completions()
                     .create(requisicao)
                     .choices()
@@ -44,13 +50,23 @@ public class ConsultaChatGPT {
             chatGptDisponivel = false;
             System.out.println("ChatGPT indisponivel no momento por falta de creditos. Usando a sinopse original.");
             return texto;
+        } catch (UnauthorizedException e) {
+            chatGptDisponivel = false;
+            System.out.println("OpenAI KEY ausente ou invalida. Usando a sinopse original.");
+            return texto;
         }
     }
 
     private static synchronized OpenAIClient getClient() {
         if (client == null) {
+            String apiKey = obterApiKey();
+            if (apiKey == null) {
+                chatGptDisponivel = false;
+                return null;
+            }
+
             client = OpenAIOkHttpClient.builder()
-                    .apiKey(obterApiKey())
+                    .apiKey(apiKey)
                     .build();
         }
         return client;
@@ -58,12 +74,12 @@ public class ConsultaChatGPT {
 
     private static String obterApiKey() {
         String apiKey = System.getenv(OPENAI_API_KEY);
-        if (apiKey != null && !apiKey.isBlank()) {
+        if (apiKeyValida(apiKey)) {
             return apiKey;
         }
 
         apiKey = System.getProperty("openai.apiKey");
-        if (apiKey != null && !apiKey.isBlank()) {
+        if (apiKeyValida(apiKey)) {
             return apiKey;
         }
 
@@ -74,16 +90,19 @@ public class ConsultaChatGPT {
                     String linhaTratada = linha.trim();
                     if (linhaTratada.startsWith(OPENAI_API_KEY + "=")) {
                         String valor = linhaTratada.substring((OPENAI_API_KEY + "=").length()).trim();
-                        return removerAspas(valor);
+                        valor = removerAspas(valor);
+                        if (apiKeyValida(valor)) {
+                            return valor;
+                        }
                     }
                 }
             } catch (IOException e) {
-                throw new IllegalStateException("Nao foi possivel ler o arquivo .env do projeto.", e);
+                System.out.println("Nao foi possivel ler o arquivo .env. Seguindo sem traducao por OpenAI.");
+                return null;
             }
         }
 
-        throw new IllegalStateException(
-                "OPENAI_API_KEY nao encontrada. Defina a variavel de ambiente ou adicione a chave no arquivo .env do projeto.");
+        return null;
     }
 
     private static Path localizarArquivoEnv() {
@@ -109,5 +128,15 @@ public class ConsultaChatGPT {
             return valor.substring(1, valor.length() - 1);
         }
         return valor;
+    }
+
+    private static boolean apiKeyValida(String apiKey) {
+        if (apiKey == null || apiKey.isBlank()) {
+            return false;
+        }
+
+        String valorNormalizado = apiKey.trim();
+        return !valorNormalizado.equalsIgnoreCase("Chave-aqui")
+                && !valorNormalizado.equalsIgnoreCase("sua_chave_aqui");
     }
 }

@@ -1,14 +1,28 @@
 package br.com.alura.Screenmatch.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "episodios")
 public class Episodio {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY) //
+    private long id;
 
     private Integer temporada;
     private String titulo;
     private Integer numeroEpisodio;
     private double avaliacao;
-
-    public Episodio() {
-    }
+   
+    @ManyToOne
+    private Serie serie ;
+    
+    public Episodio() {}
 
     public Episodio(Integer temporada, DadosEpisodio dadosEpisodio) {
         this.temporada = temporada;
@@ -17,10 +31,23 @@ public class Episodio {
         this.avaliacao = parseAvaliacao(dadosEpisodio.avaliacao());
     }
 
+    public long getId() {
+        return id;
+    }
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public Serie getSerie() {
+        return serie;
+    }
+    public void setSerie(Serie serie) {
+        this.serie = serie;
+    }
+
     public Integer getTemporada() {
         return temporada;
     }
-
     public void setTemporada(Integer temporada) {
         this.temporada = temporada;
     }
@@ -28,7 +55,6 @@ public class Episodio {
     public String getTitulo() {
         return titulo;
     }
-
     public void setTitulo(String titulo) {
         this.titulo = titulo;
     }
@@ -36,7 +62,6 @@ public class Episodio {
     public Integer getNumeroEpisodio() {
         return numeroEpisodio;
     }
-
     public void setNumeroEpisodio(Integer numeroEpisodio) {
         this.numeroEpisodio = numeroEpisodio;
     }
@@ -44,7 +69,6 @@ public class Episodio {
     public double getAvaliacao() {
         return avaliacao;
     }
-
     public void setAvaliacao(double avaliacao) {
         this.avaliacao = avaliacao;
     }
