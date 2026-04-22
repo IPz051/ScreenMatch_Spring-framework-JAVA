@@ -24,20 +24,17 @@ O projeto demonstra um fluxo simples de:
 - listar todos os episodios por temporada;
 - calcular media da temporada;
 - mostrar estatisticas simples por temporada;
-- salvar series buscadas no PostgreSQL;
-- listar as series salvas no banco.
+- salvar series e episodios buscados no PostgreSQL;
+- listar as series salvas no banco;
+- listar episodios de uma serie usando o banco (carrega da API e persiste se ainda nao existir);
+- buscar series por ator usando o banco.
 
-## Atualizacoes de hoje
+## Mudancas recentes
 
-- troca da biblioteca antiga `com.theokanning.openai-gpt3-java` pela SDK oficial `com.openai:openai-java`;
-- configuracao da leitura da `OPENAI_API_KEY` via variavel de ambiente, propriedade do sistema ou arquivo `.env`;
-- tratamento do erro `429` da OpenAI para nao derrubar a aplicacao quando acabarem os creditos;
-- adicao do `spring-boot-starter-data-jpa` e do driver `postgresql`;
-- configuracao do datasource PostgreSQL em `application.properties`;
-- criacao do repositorio `SerieRepository`;
-- ajuste do fluxo para salvar series buscadas no banco;
-- correcao da injecao do repositorio em `ScreenmatchApplication` e `principal`;
-- ajuste da entidade `Serie` para funcionar melhor com JPA, incluindo construtor vazio.
+- o fluxo de busca agora exibe primeiro a ficha completa da serie e depois mostra os 5 episodios com maior avaliacao IMDb;
+- as series e os episodios podem ser persistidos no banco (PostgreSQL) via Spring Data JPA;
+- foram adicionadas opcoes no menu para listar episodios e buscar series por ator usando o banco;
+- foi adicionada a propriedade `screenmatch.cli.enabled` para permitir executar a aplicacao sem abrir o menu interativo (util para testes/execucoes nao-interativas).
 
 ## Tecnologias
 
@@ -57,12 +54,14 @@ src/main/java/br/com/alura/Screenmatch
 |- ScreenmatchApplication.java
 |- Principal/principal.java
 |- Repository/
+|  |- EpisodioRepository.java
 |  `- SerieRepository.java
 |- model/
 |  |- CategoriaEnum.java
 |  |- DadosEpisodio.java
 |  |- DadosSerie.java
 |  |- DadosTemporada.java
+|  |- Episodio.java
 |  `- Serie.java
 `- service/
    |- ConsumoApi.java
@@ -74,14 +73,14 @@ src/main/java/br/com/alura/Screenmatch
 ## Fluxo da aplicacao
 
 1. `ScreenmatchApplication` inicia a aplicacao Spring Boot.
-2. O metodo `run()` cria a classe `principal`, injetando o `SerieRepository`.
-3. `principal.exibeMenu()` mostra o menu no terminal.
+2. O metodo `run()` cria a classe `principal`, injetando `SerieRepository` e `EpisodioRepository`.
+3. `principal.exibeMenu()` mostra o menu no terminal (a nao ser que `screenmatch.cli.enabled=false`).
 4. Ao buscar uma serie, o projeto consulta a API OMDb.
 5. O JSON retornado e convertido para objetos Java.
 6. A classe `Serie` tenta traduzir a sinopse via `ConsultaChatGPT`.
 7. Se a OpenAI estiver sem creditos, a aplicacao usa a sinopse original e continua normalmente.
-8. A serie e salva no PostgreSQL com `repository.save(...)`.
-9. A opcao de listagem busca os dados salvos no banco com `repository.findAll()`.
+8. A serie e salva no PostgreSQL com `repository.save(...)` e os episodios podem ser persistidos via `episodioRepository`.
+9. As opcoes do menu consultam o banco para listar series/episodios e filtrar series por ator.
 
 ## Menu atual
 
@@ -89,6 +88,8 @@ src/main/java/br/com/alura/Screenmatch
 1 - Buscar serie
 2 - Listar series buscadas
 3 - Sair
+4 - Listar episodios de uma serie (banco)
+5 - Buscar series por ator (banco)
 ```
 
 ## Configuracao
@@ -156,7 +157,22 @@ Se o terminal mostrar `BUILD SUCCESS`, o Maven resolveu as dependencias do `pom.
 
 ## Como testar
 
-Os testes atuais podem subir a aplicacao de console e travar esperando entrada do usuario. Para validar o build sem executar os testes:
+Atualmente nao ha testes automatizados no repositorio, mas a dependencia `spring-boot-starter-test` esta no `pom.xml`.
+
+Se voce adicionar testes que sobem o contexto Spring (por exemplo com `@SpringBootTest`), desative o menu do `CommandLineRunner` para evitar travar esperando entrada:
+
+```powershell
+.\mvnw.cmd --% -Dscreenmatch.cli.enabled=false test
+```
+
+Alternativa via variavel de ambiente (Spring converte `screenmatch.cli.enabled` para `SCREENMATCH_CLI_ENABLED`):
+
+```powershell
+$env:SCREENMATCH_CLI_ENABLED="false"
+.\mvnw.cmd test
+```
+
+Para validar apenas o build sem executar testes:
 
 ```powershell
 .\mvnw.cmd -DskipTests package
@@ -173,6 +189,5 @@ Os testes atuais podem subir a aplicacao de console e travar esperando entrada d
 
 - mover a chave da API OMDb para `application.properties` ou variavel de ambiente;
 - renomear a classe `principal` para `Principal`;
-- criar a entidade `Episodio` e mapear o relacionamento com `Serie`;
 - melhorar os testes para o `mvn test` nao depender de entrada interativa;
 - separar melhor as responsabilidades entre menu, servico e camada de persistencia.
