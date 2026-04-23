@@ -2,6 +2,11 @@
 
 Aplicacao Java com Spring Boot que consome a API OMDb para buscar series e expor os dados via API REST. O projeto usa JPA com PostgreSQL para persistir as series/episodios e integra a OpenAI para traduzir a sinopse quando houver chave e creditos disponiveis. Ha tambem um front-end (Vite + JavaScript) para listar, filtrar e visualizar detalhes das series.
 
+## Demo (deploy)
+
+- Front-end (Vercel): https://screenmatchjava.vercel.app/
+- Backend/API (Render): https://screenmatch-spring-framework-java.onrender.com
+
 ## Objetivo
 
 O projeto demonstra um fluxo simples de:
@@ -173,6 +178,19 @@ npm run dev
 ```
 
 O Vite usa proxy para o backend (por padrao `http://localhost:8080`). Ajuste se necessario em `vite.config.js`.
+
+## Deploy
+
+### Backend no Render
+
+- Criar um Postgres no Render e configurar as variaveis `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
+- O backend usa `server.port=${PORT:8080}` para respeitar a porta definida pelo Render.
+
+### Front na Vercel
+
+- Root Directory: `Screenmatch/src/main/resources/static`
+- Env var: `VITE_API_BASE=https://screenmatch-spring-framework-java.onrender.com`
+- Build: `npm run build` (output `dist`)
 
 ## Como instalar ou atualizar dependencias
 
