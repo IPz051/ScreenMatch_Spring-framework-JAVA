@@ -1,5 +1,9 @@
 package br.com.alura.Screenmatch.model;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Locale;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,20 +22,21 @@ import jakarta.persistence.Table;
 @Table(name = "series")
 
 public class Serie {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) //
-    private long id;
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY) //
+        private long id;
 
-    @Column(unique = true)
-    private String titulo;
-    private Integer temporada;
-    private double avaliacao;
-    @Enumerated(EnumType.STRING)
-    @Column(name = "genero")
-    private CategoriaEnum genero;
-    private String atores;
-    private String poster;
-    private String sinopse;
+        @Column(unique = true)
+        private String titulo;
+        private Integer temporada;
+        private double avaliacao;
+        @Enumerated(EnumType.STRING)
+        @Column(name = "genero")
+        private CategoriaEnum genero;
+        private String atores;
+        private String poster;
+        private String sinopse;
+        private LocalDate dataLancamento;
 
     @OneToMany(mappedBy = "serie")
     private List <Episodio> episodios = new ArrayList<>();
@@ -47,6 +52,7 @@ public class Serie {
         this.atores = dadosSerie.atores();
         this.poster = dadosSerie.poster();
         this.sinopse = ConsultaChatGPT.obterTraducao(dadosSerie.sinopse()).trim();
+        this.dataLancamento = parseDataLancamento(dadosSerie.lancamento());
     }
     
 
@@ -107,6 +113,13 @@ public class Serie {
         this.sinopse = sinopse;
     }
 
+    public LocalDate getDataLancamento() {
+        return dataLancamento;
+    }
+    public void setDataLancamento(LocalDate dataLancamento) {
+        this.dataLancamento = dataLancamento;
+    }
+
     @Override
     public String toString() {
         return "Serie{" +
@@ -117,6 +130,7 @@ public class Serie {
                 ", atores='" + atores + '\'' +
                 ", poster='" + poster + '\'' +
                 ", sinopse='" + sinopse + '\'' +
+                ", dataLancamento=" + dataLancamento +
                 '}';
     }
 
@@ -128,6 +142,18 @@ public class Serie {
             return Double.parseDouble(avaliacao);
         } catch (NumberFormatException e) {
             return 0;
+        }
+    }
+
+    private LocalDate parseDataLancamento(String lancamento) {
+        if (lancamento == null || lancamento.isBlank() || lancamento.equalsIgnoreCase("N/A")) {
+            return null;
+        }
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
+            return LocalDate.parse(lancamento.trim(), formatter);
+        } catch (DateTimeParseException e) {
+            return null;
         }
     }
 

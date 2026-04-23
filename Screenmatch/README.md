@@ -1,6 +1,6 @@
 # Screenmatch
 
-Aplicacao Java com Spring Boot que consome a API OMDb para buscar series e exibir informacoes no terminal. O projeto agora tambem usa JPA com PostgreSQL para persistir as series buscadas e integra a OpenAI para traduzir a sinopse quando houver chave e creditos disponiveis.
+Aplicacao Java com Spring Boot que consome a API OMDb para buscar series e expor os dados via API REST. O projeto usa JPA com PostgreSQL para persistir as series/episodios e integra a OpenAI para traduzir a sinopse quando houver chave e creditos disponiveis. Ha tambem um front-end (Vite + JavaScript) para listar, filtrar e visualizar detalhes das series.
 
 ## Objetivo
 
@@ -16,25 +16,25 @@ O projeto demonstra um fluxo simples de:
 ## Funcionalidades atuais
 
 - buscar uma serie pelo nome;
-- exibir ficha da serie com titulo, temporadas, avaliacao, votos, genero, atores, poster e sinopse;
+- exibir ficha da serie com titulo, temporadas, avaliacao, genero, atores, poster, sinopse e data de lancamento;
 - traduzir a sinopse com OpenAI quando a chave estiver configurada e a conta tiver creditos;
 - usar a sinopse original automaticamente quando o ChatGPT estiver indisponivel ou sem creditos;
-- listar os 5 episodios com maior avaliacao IMDb;
-- buscar episodio por parte do titulo;
-- listar todos os episodios por temporada;
-- calcular media da temporada;
-- mostrar estatisticas simples por temporada;
 - salvar series e episodios buscados no PostgreSQL;
 - listar as series salvas no banco;
 - listar episodios de uma serie usando o banco (carrega da API e persiste se ainda nao existir);
-- buscar series por ator usando o banco.
+- buscar series por ator usando o banco;
+- listar TOP 5 series por avaliacao;
+- filtrar series por temporadas minimas e avaliacao minima (JPQL);
+- buscar episodios por trecho do titulo (JPQL);
+- listar TOP episodios por serie (JPQL);
+- listar lancamentos (ordenado do mais recente para o mais antigo);
+- front-end web com cards e modal exibindo temporadas e episodios.
 
 ## Mudancas recentes
 
-- o fluxo de busca agora exibe primeiro a ficha completa da serie e depois mostra os 5 episodios com maior avaliacao IMDb;
-- as series e os episodios podem ser persistidos no banco (PostgreSQL) via Spring Data JPA;
-- foram adicionadas opcoes no menu para listar episodios e buscar series por ator usando o banco;
-- foi adicionada a propriedade `screenmatch.cli.enabled` para permitir executar a aplicacao sem abrir o menu interativo (util para testes/execucoes nao-interativas).
+- a aplicacao agora expoe endpoints REST para series, lancamentos, top 5 e episodios por serie;
+- foi adicionado um front-end (Vite) em `src/main/resources/static` consumindo a API;
+- foi incluido `dataLancamento` (OMDb `Released`) e listagem de lancamentos.
 
 ## Tecnologias
 
@@ -53,9 +53,12 @@ O projeto demonstra um fluxo simples de:
 src/main/java/br/com/alura/Screenmatch
 |- ScreenmatchApplication.java
 |- Principal/principal.java
+|- DTO/serieDTO.java
 |- Repository/
 |  |- EpisodioRepository.java
 |  `- SerieRepository.java
+|- config/corsConfiguration.java
+|- controller/serieController.java
 |- model/
 |  |- CategoriaEnum.java
 |  |- DadosEpisodio.java
@@ -68,28 +71,45 @@ src/main/java/br/com/alura/Screenmatch
    |- ConsultaChatGPT.java
    |- ConverteDados.java
    `- IConverteDados.java
+
+src/main/resources/static
+|- package.json
+|- vite.config.js
+`- src/
+   |- main.js
+   `- styles.css
 ```
 
 ## Fluxo da aplicacao
 
-1. `ScreenmatchApplication` inicia a aplicacao Spring Boot.
-2. O metodo `run()` cria a classe `principal`, injetando `SerieRepository` e `EpisodioRepository`.
-3. `principal.exibeMenu()` mostra o menu no terminal (a nao ser que `screenmatch.cli.enabled=false`).
-4. Ao buscar uma serie, o projeto consulta a API OMDb.
-5. O JSON retornado e convertido para objetos Java.
-6. A classe `Serie` tenta traduzir a sinopse via `ConsultaChatGPT`.
-7. Se a OpenAI estiver sem creditos, a aplicacao usa a sinopse original e continua normalmente.
-8. A serie e salva no PostgreSQL com `repository.save(...)` e os episodios podem ser persistidos via `episodioRepository`.
-9. As opcoes do menu consultam o banco para listar series/episodios e filtrar series por ator.
+1. `ScreenmatchApplication` inicia a aplicacao Spring Boot (API REST).
+2. O front-end (Vite) chama `GET /series` e renderiza os cards.
+3. Ao adicionar uma serie pelo front (POST), o backend consulta a OMDb, salva a serie no banco e pode persistir episodios.
+4. No clique do card, o front chama `GET /series/{id}/episodios` e exibe temporadas/episodios no modal.
+5. A classe `Serie` tenta traduzir a sinopse via `ConsultaChatGPT` e usa fallback se necessario.
 
-## Menu atual
+## API (endpoints)
+
+- `GET /series` lista todas as series cadastradas (DTO).
+- `POST /series` adiciona/atualiza uma serie a partir do titulo (busca na OMDb). Body: `{"titulo":"Breaking Bad"}`
+- `GET /series/top5` retorna as 5 melhores series por avaliacao.
+- `GET /series/lancamentos` retorna series ordenadas por data de lancamento (mais recente primeiro).
+- `GET /series/{id}` retorna uma serie pelo id.
+- `GET /series/{id}/episodios` retorna episodios da serie (ordenado por temporada/episodio) e carrega da OMDb se ainda nao existir no banco.
+
+## Menu (CLI)
 
 ```text
 1 - Buscar serie
 2 - Listar series buscadas
-3 - Sair
-4 - Listar episodios de uma serie (banco)
-5 - Buscar series por ator (banco)
+3 - Listar episodios de uma serie
+4 - Buscar series por ator
+5 - TOP 5 series
+6 - Listar series por categoria
+7 - Series por temporadas e avaliacao
+8 - Episodios por trecho do titulo
+9 - TOP episodios por serie
+0 - Sair
 ```
 
 ## Configuracao
@@ -99,9 +119,9 @@ src/main/java/br/com/alura/Screenmatch
 O arquivo `src/main/resources/application.properties` contem a configuracao do PostgreSQL:
 
 ```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/screenmatch
-spring.datasource.username=SEU_USUARIO
-spring.datasource.password=SUA_SENHA
+spring.datasource.url=jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}
+spring.datasource.username=${DB_USER}
+spring.datasource.password=${DB_PASSWORD}
 spring.datasource.driver-class-name=org.postgresql.Driver
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 spring.jpa.hibernate.ddl-auto=update
@@ -110,8 +130,7 @@ spring.jpa.hibernate.ddl-auto=update
 Antes de executar, confirme que:
 
 - o PostgreSQL esta em execucao;
-- o banco `screenmatch` existe;
-- usuario e senha estao corretos.
+- as variaveis `DB_HOST`, `DB_NAME`, `DB_USER` e `DB_PASSWORD` estao definidas.
 
 ### OpenAI
 
@@ -129,6 +148,8 @@ Se a chave nao existir, a aplicacao informa o problema. Se a conta estiver sem c
 
 ## Como executar
 
+### Backend (API)
+
 ### Windows
 
 ```powershell
@@ -140,6 +161,18 @@ Se a chave nao existir, a aplicacao informa o problema. Se a conta estiver sem c
 ```bash
 ./mvnw spring-boot:run
 ```
+
+### Front-end (Vite)
+
+O front fica em `src/main/resources/static`:
+
+```powershell
+cd src/main/resources/static
+npm install
+npm run dev
+```
+
+O Vite usa proxy para o backend (por padrao `http://localhost:8080`). Ajuste se necessario em `vite.config.js`.
 
 ## Como instalar ou atualizar dependencias
 
@@ -159,19 +192,6 @@ Se o terminal mostrar `BUILD SUCCESS`, o Maven resolveu as dependencias do `pom.
 
 Atualmente nao ha testes automatizados no repositorio, mas a dependencia `spring-boot-starter-test` esta no `pom.xml`.
 
-Se voce adicionar testes que sobem o contexto Spring (por exemplo com `@SpringBootTest`), desative o menu do `CommandLineRunner` para evitar travar esperando entrada:
-
-```powershell
-.\mvnw.cmd --% -Dscreenmatch.cli.enabled=false test
-```
-
-Alternativa via variavel de ambiente (Spring converte `screenmatch.cli.enabled` para `SCREENMATCH_CLI_ENABLED`):
-
-```powershell
-$env:SCREENMATCH_CLI_ENABLED="false"
-.\mvnw.cmd test
-```
-
 Para validar apenas o build sem executar testes:
 
 ```powershell
@@ -182,8 +202,9 @@ Para validar apenas o build sem executar testes:
 
 - a chave da API OMDb ainda esta definida diretamente na classe `principal`;
 - a listagem de series agora usa o banco de dados, nao apenas a memoria da sessao;
-- a interface da aplicacao continua sendo feita pelo terminal, sem pagina web;
-- o projeto ainda usa a classe `principal` com nome minusculo, embora o padrao Java recomende `Principal`.
+- a API REST e consumida pelo front-end web (Vite);
+- o projeto ainda usa a classe `principal` com nome minusculo, embora o padrao Java recomende `Principal`;
+- o CORS esta configurado para `localhost/127.0.0.1` nas portas 5173/5501.
 
 ## Possiveis proximos passos
 

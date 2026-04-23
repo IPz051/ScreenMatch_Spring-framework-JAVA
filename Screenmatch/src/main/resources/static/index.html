@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Screenmatch</title>
+  </head>
+  <body>
+    <div class="bg">
+      <div class="bg__glow bg__glow--a"></div>
+      <div class="bg__glow bg__glow--b"></div>
+      <div class="bg__grid"></div>
+    </div>
+
+    <header class="topbar">
+      <div class="topbar__inner">
+        <div class="brand">
+          <div class="brand__mark"></div>
+          <div class="brand__text">
+            <div class="brand__title">Screenmatch</div>
+            <div class="brand__subtitle">Painel de séries</div>
+          </div>
+        </div>
+
+        <div class="topbar__actions">
+          <div id="status" class="status"></div>
+          <button id="reload" class="btn btn--primary" type="button">Recarregar</button>
+          <button id="clear" class="btn btn--ghost" type="button">Limpar</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="panel">
+        <div class="panel__header">
+          <div class="panel__title">Explorar</div>
+          <div class="panel__hint">Tempo real</div>
+        </div>
+
+        <div class="panel__body">
+          <div class="segmented" role="tablist" aria-label="Modo">
+            <button id="modeAll" class="segmented__btn segmented__btn--active" type="button">Todas</button>
+            <button id="modeTop5" class="segmented__btn" type="button">Top 5</button>
+            <button id="modeReleases" class="segmented__btn" type="button">Lançamentos</button>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="addTitle">Adicionar série</label>
+            <div class="add">
+              <input id="addTitle" class="field__input" type="text" placeholder="Ex: Breaking Bad" />
+              <button id="addBtn" class="btn btn--primary" type="button">Adicionar</button>
+            </div>
+            <div id="addError" class="helper" aria-live="polite"></div>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="q">Buscar</label>
+            <input id="q" class="field__input" type="search" placeholder="Título ou atores" />
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="genero">Gênero</label>
+            <select id="genero" class="field__input">
+              <option value="">Todos</option>
+            </select>
+          </div>
+
+          <div class="grid2">
+            <div class="field">
+              <label class="field__label" for="minRating">IMDb mín.</label>
+              <input id="minRating" class="field__input" type="number" step="0.1" min="0" max="10" placeholder="7.5" />
+            </div>
+            <div class="field">
+              <label class="field__label" for="minSeasons">Temporadas</label>
+              <input id="minSeasons" class="field__input" type="number" step="1" min="0" placeholder="3" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field__label">Lançamento</label>
+            <div class="range">
+              <input id="startDate" class="field__input" type="date" />
+              <span class="range__sep">→</span>
+              <input id="endDate" class="field__input" type="date" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="sort">Ordenar</label>
+            <select id="sort" class="field__input">
+              <option value="rating_desc">IMDb (maior)</option>
+              <option value="release_desc">Lançamento (recente)</option>
+              <option value="title_asc">Título (A-Z)</option>
+              <option value="rating_asc">IMDb (menor)</option>
+              <option value="release_asc">Lançamento (antigo)</option>
+              <option value="title_desc">Título (Z-A)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="panel__footer">
+          <div class="legend">
+            <div class="legend__dot legend__dot--a"></div>
+            <div>Fonte: <span id="sourceLabel" class="legend__value">/series</span></div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="content">
+        <div id="grid" class="cards"></div>
+      </section>
+
+      <dialog id="dialog" class="dialog">
+        <div class="dialog__top">
+          <div class="dialog__title" id="dialogTitle"></div>
+          <button id="dialogClose" class="btn btn--ghost" type="button">Fechar</button>
+        </div>
+        <div id="dialogBody" class="dialog__body"></div>
+      </dialog>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
