@@ -2,12 +2,21 @@ import "./styles.css";
 
 const $ = (id) => document.getElementById(id);
 
+const API_BASE = (import.meta.env.VITE_API_BASE ?? "").toString().trim().replace(/\/$/, "");
+
 const state = {
   data: [],
   filtered: [],
   endpoint: "/series",
   dialogAbortController: null
 };
+
+function apiUrl(path) {
+  const p = (path ?? "").toString();
+  if (!API_BASE) return p;
+  if (!p.startsWith("/")) return `${API_BASE}/${p}`;
+  return `${API_BASE}${p}`;
+}
 
 function normalizeText(value) {
   return (value ?? "")
@@ -308,7 +317,7 @@ async function loadEpisodesForDialog(serieId) {
   const timeoutId = window.setTimeout(() => controller.abort(), 15000);
 
   try {
-    const res = await fetch(`/series/${serieId}/episodios`, {
+    const res = await fetch(apiUrl(`/series/${serieId}/episodios`), {
       headers: { Accept: "application/json" },
       signal: controller.signal
     });
@@ -386,7 +395,7 @@ async function loadSeries() {
   const url = state.endpoint;
   setStatus(`Carregando: ${url}`);
   try {
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const res = await fetch(apiUrl(url), { headers: { Accept: "application/json" } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const data = await res.json();
@@ -421,7 +430,7 @@ async function addSerie() {
 
   setStatus("Adicionando série...");
   try {
-    const res = await fetch("/series", {
+    const res = await fetch(apiUrl("/series"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
